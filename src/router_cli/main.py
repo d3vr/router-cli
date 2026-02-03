@@ -4,6 +4,8 @@
 import argparse
 import re
 import sys
+import threading
+from contextlib import contextmanager
 
 from .client import (
     ADSLStats,
@@ -33,6 +35,59 @@ def colorize(text: str, color: str) -> str:
     if not sys.stdout.isatty():
         return text
     return f"{_COLORS.get(color, '')}{text}{_COLORS['reset']}"
+
+
+# Spinner frames - braille pattern for smooth animation
+_SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+_SPINNER_INTERVAL = 0.08  # seconds between frames
+
+
+@contextmanager
+def spinner(message: str = "Loading..."):
+    """Display an animated spinner while waiting for an operation.
+
+    Usage:
+        with spinner("Fetching status..."):
+            result = client.get_status()
+
+    Only displays spinner if stdout is a TTY.
+    """
+    if not sys.stdout.isatty():
+        # Not a TTY, just run without spinner
+        yield
+        return
+
+    stop_event = threading.Event()
+    spinner_thread = None
+
+    def animate():
+        frame_idx = 0
+        # Hide cursor
+        sys.stdout.write("\033[?25l")
+        sys.stdout.flush()
+
+        while not stop_event.is_set():
+            frame = _SPINNER_FRAMES[frame_idx % len(_SPINNER_FRAMES)]
+            # Write spinner frame and message, then return cursor to start
+            sys.stdout.write(f"\r{frame} {message}")
+            sys.stdout.flush()
+            frame_idx += 1
+            stop_event.wait(_SPINNER_INTERVAL)
+
+        # Clear the spinner line
+        sys.stdout.write("\r" + " " * (len(message) + 3) + "\r")
+        # Show cursor
+        sys.stdout.write("\033[?25h")
+        sys.stdout.flush()
+
+    try:
+        spinner_thread = threading.Thread(target=animate, daemon=True)
+        spinner_thread.start()
+        yield
+    finally:
+        stop_event.set()
+        if spinner_thread:
+            spinner_thread.join(timeout=0.5)
 
 
 def get_device_display(
@@ -436,7 +491,8 @@ def format_overview(
 def cmd_status(client: RouterClient) -> int:
     """Execute status command."""
     try:
-        status = client.get_status()
+        with spinner("Fetching router status..."):
+            status = client.get_status()
         print(format_status(status))
         return 0
     except Exception as e:
@@ -447,8 +503,8 @@ def cmd_status(client: RouterClient) -> int:
 def cmd_reboot(client: RouterClient) -> int:
     """Execute reboot command."""
     try:
-        print("Rebooting router...")
-        client.reboot()
+        with spinner("Sending reboot command..."):
+            client.reboot()
         print("Reboot command sent successfully.")
         print("The router will restart in a few seconds.")
         return 0
@@ -460,7 +516,8 @@ def cmd_reboot(client: RouterClient) -> int:
 def cmd_clients(client: RouterClient, known_devices: dict[str, str]) -> int:
     """Execute clients command."""
     try:
-        clients = client.get_wireless_clients()
+        with spinner("Fetching wireless clients..."):
+            clients = client.get_wireless_clients()
         print(format_clients(clients, known_devices))
         return 0
     except Exception as e:
@@ -471,7 +528,8 @@ def cmd_clients(client: RouterClient, known_devices: dict[str, str]) -> int:
 def cmd_dhcp(client: RouterClient, known_devices: dict[str, str]) -> int:
     """Execute dhcp command."""
     try:
-        leases = client.get_dhcp_leases()
+        with spinner("Fetching DHCP leases..."):
+            leases = client.get_dhcp_leases()
         print(format_dhcp(leases, known_devices))
         return 0
     except Exception as e:
@@ -482,7 +540,8 @@ def cmd_dhcp(client: RouterClient, known_devices: dict[str, str]) -> int:
 def cmd_routes(client: RouterClient) -> int:
     """Execute routes command."""
     try:
-        routes = client.get_routes()
+        with spinner("Fetching routing table..."):
+            routes = client.get_routes()
         print(format_routes(routes))
         return 0
     except Exception as e:
@@ -493,7 +552,8 @@ def cmd_routes(client: RouterClient) -> int:
 def cmd_stats(client: RouterClient) -> int:
     """Execute stats command."""
     try:
-        stats = client.get_statistics()
+        with spinner("Fetching network statistics..."):
+            stats = client.get_statistics()
         print(format_stats(stats))
         return 0
     except Exception as e:
@@ -506,7 +566,8 @@ def cmd_logs(
 ) -> int:
     """Execute logs command."""
     try:
-        logs = client.get_logs()
+        with spinner("Fetching system logs..."):
+            logs = client.get_logs()
 
         # Filter by severity level if specified
         if level:
@@ -527,10 +588,11 @@ def cmd_logs(
 def cmd_overview(client: RouterClient, known_devices: dict[str, str]) -> int:
     """Execute overview command."""
     try:
-        status = client.get_status()
-        clients = client.get_wireless_clients()
-        leases = client.get_dhcp_leases()
-        stats = client.get_statistics()
+        with spinner("Fetching router overview..."):
+            status = client.get_status()
+            clients = client.get_wireless_clients()
+            leases = client.get_dhcp_leases()
+            stats = client.get_statistics()
         print(format_overview(status, clients, leases, stats, known_devices))
         return 0
     except Exception as e:
