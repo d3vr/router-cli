@@ -2,6 +2,7 @@
 """Router CLI - Main entry point."""
 
 import argparse
+import re
 import sys
 
 from .client import (
@@ -15,7 +16,61 @@ from .client import (
     Statistics,
     WirelessClient,
 )
-from .config import load_config
+from .config import load_config, load_known_devices
+
+
+# ANSI color codes
+_COLORS = {
+    "green": "\033[32m",
+    "red": "\033[31m",
+    "yellow": "\033[33m",
+    "reset": "\033[0m",
+}
+
+
+def colorize(text: str, color: str) -> str:
+    """Apply ANSI color to text if stdout is a TTY."""
+    if not sys.stdout.isatty():
+        return text
+    return f"{_COLORS.get(color, '')}{text}{_COLORS['reset']}"
+
+
+def get_device_display(
+    mac: str, hostname: str, known_devices: dict[str, str]
+) -> tuple[str, bool]:
+    """Get display name for a device and whether it's known.
+
+    Returns (display_name, is_known) tuple.
+    If known, display_name is 'Alias (hostname)'.
+    """
+    alias = known_devices.get(mac.upper())
+    if alias:
+        if hostname and hostname != alias:
+            return f"{alias} ({hostname})", True
+        return alias, True
+    return hostname or mac, False
+
+
+def format_expires(expires_in: str) -> str:
+    """Convert verbose expires string to compact HH:MM:SS format.
+
+    Input: "22 hours, 27 minutes, 15 seconds"
+    Output: "22:27:15"
+    """
+    hours = minutes = seconds = 0
+
+    h_match = re.search(r"(\d+)\s*hour", expires_in)
+    m_match = re.search(r"(\d+)\s*minute", expires_in)
+    s_match = re.search(r"(\d+)\s*second", expires_in)
+
+    if h_match:
+        hours = int(h_match.group(1))
+    if m_match:
+        minutes = int(m_match.group(1))
+    if s_match:
+        seconds = int(s_match.group(1))
+
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
 def format_status(status: RouterStatus) -> str:
@@ -70,38 +125,96 @@ def format_status(status: RouterStatus) -> str:
     return "\n".join(lines)
 
 
-def format_clients(clients: list[WirelessClient]) -> str:
+def format_clients(
+    clients: list[WirelessClient], known_devices: dict[str, str] | None = None
+) -> str:
     """Format wireless clients for display."""
     if not clients:
         return "No wireless clients connected."
 
-    lines = [
-        f"{'MAC Address':<18} {'Associated':<12} {'Authorized':<12} {'SSID':<20} {'Interface':<10}",
-        f"{'-' * 17:<18} {'-' * 10:<12} {'-' * 10:<12} {'-' * 18:<20} {'-' * 8:<10}",
-    ]
+    known_devices = known_devices or {}
+
+    # Build display data and calculate column widths
+    rows = []
     for c in clients:
         assoc = "Yes" if c.associated else "No"
         auth = "Yes" if c.authorized else "No"
-        lines.append(
-            f"{c.mac:<18} {assoc:<12} {auth:<12} {c.ssid:<20} {c.interface:<10}"
+        is_known = c.mac.upper() in known_devices
+        alias = known_devices.get(c.mac.upper(), "")
+        mac_display = f"{c.mac} ({alias})" if alias else c.mac
+        rows.append((mac_display, assoc, auth, c.ssid, c.interface, is_known))
+
+    # Calculate column widths
+    headers = ["MAC Address", "Associated", "Authorized", "SSID", "Interface"]
+    widths = [len(h) for h in headers]
+    for row in rows:
+        for i, val in enumerate(row[:5]):
+            widths[i] = max(widths[i], len(str(val)))
+
+    # Add padding
+    widths = [w + 2 for w in widths]
+
+    # Build output
+    header_line = "".join(h.ljust(widths[i]) for i, h in enumerate(headers))
+    sep_line = "".join(("-" * (w - 2)).ljust(w) for w in widths)
+    lines = [header_line, sep_line]
+
+    for mac_display, assoc, auth, ssid, interface, is_known in rows:
+        color = "green" if is_known else "red"
+        line = (
+            f"{mac_display.ljust(widths[0])}"
+            f"{assoc.ljust(widths[1])}"
+            f"{auth.ljust(widths[2])}"
+            f"{ssid.ljust(widths[3])}"
+            f"{interface.ljust(widths[4])}"
         )
+        lines.append(colorize(line, color))
 
     return "\n".join(lines)
 
 
-def format_dhcp(leases: list[DHCPLease]) -> str:
+def format_dhcp(
+    leases: list[DHCPLease], known_devices: dict[str, str] | None = None
+) -> str:
     """Format DHCP leases for display."""
     if not leases:
         return "No DHCP leases."
 
-    lines = [
-        f"{'Hostname':<20} {'MAC Address':<18} {'IP Address':<16} {'Expires In':<12}",
-        f"{'-' * 18:<20} {'-' * 16:<18} {'-' * 14:<16} {'-' * 10:<12}",
-    ]
+    known_devices = known_devices or {}
+
+    # Build display data and calculate column widths
+    rows = []
     for lease in leases:
-        lines.append(
-            f"{lease.hostname:<20} {lease.mac:<18} {lease.ip:<16} {lease.expires_in:<12}"
+        display_name, is_known = get_device_display(
+            lease.mac, lease.hostname, known_devices
         )
+        expires = f"⏱ {format_expires(lease.expires_in)}"
+        rows.append((display_name, lease.mac, lease.ip, expires, is_known))
+
+    # Calculate column widths
+    headers = ["Device", "MAC Address", "IP Address", "Expires"]
+    widths = [len(h) for h in headers]
+    for row in rows:
+        for i, val in enumerate(row[:4]):
+            widths[i] = max(widths[i], len(str(val)))
+
+    # Add padding
+    widths = [w + 2 for w in widths]
+
+    # Build output
+    header_line = "".join(h.ljust(widths[i]) for i, h in enumerate(headers))
+    sep_line = "".join(("-" * (w - 2)).ljust(w) for w in widths)
+    lines = [header_line, sep_line]
+
+    for display_name, mac, ip, expires, is_known in rows:
+        color = "green" if is_known else "red"
+        line = (
+            f"{display_name.ljust(widths[0])}"
+            f"{mac.ljust(widths[1])}"
+            f"{ip.ljust(widths[2])}"
+            f"{expires.ljust(widths[3])}"
+        )
+        lines.append(colorize(line, color))
 
     return "\n".join(lines)
 
@@ -214,8 +327,10 @@ def format_overview(
     clients: list[WirelessClient],
     leases: list[DHCPLease],
     stats: Statistics,
+    known_devices: dict[str, str] | None = None,
 ) -> str:
     """Format overview dashboard with highlights from multiple sources."""
+    known_devices = known_devices or {}
     lines = [
         "=" * 60,
         f"{'ROUTER OVERVIEW':^60}",
@@ -249,6 +364,39 @@ def format_overview(
     lines.append(f"  DHCP Leases:        {len(leases)}")
     lines.append("")
 
+    # DHCP Leases list
+    if leases:
+        lines.append("DEVICES")
+
+        # Build display data and calculate column widths
+        rows = []
+        for lease in leases:
+            display_name, is_known = get_device_display(
+                lease.mac, lease.hostname, known_devices
+            )
+            expires = f"⏱ {format_expires(lease.expires_in)}"
+            rows.append((display_name, lease.mac, lease.ip, expires, is_known))
+
+        # Calculate column widths
+        widths = [
+            max(len(row[0]) for row in rows),
+            max(len(row[1]) for row in rows),
+            max(len(row[2]) for row in rows),
+            max(len(row[3]) for row in rows),
+        ]
+        widths = [w + 2 for w in widths]
+
+        for display_name, mac, ip, expires, is_known in rows:
+            color = "green" if is_known else "red"
+            device_line = (
+                f"  {display_name.ljust(widths[0])}"
+                f"{mac.ljust(widths[1])}"
+                f"{ip.ljust(widths[2])}"
+                f"{expires}"
+            )
+            lines.append(colorize(device_line, color))
+        lines.append("")
+
     # Traffic summary (if available)
     total_rx = sum(i.rx_bytes for i in stats.wan_interfaces)
     total_tx = sum(i.tx_bytes for i in stats.wan_interfaces)
@@ -268,6 +416,12 @@ def format_overview(
     if stats.adsl.downstream_snr_margin and stats.adsl.downstream_snr_margin < 6:
         warnings.append(
             f"  Low SNR margin: {stats.adsl.downstream_snr_margin:.1f} dB (may cause disconnects)"
+        )
+    # Warn about unknown devices
+    unknown_count = sum(1 for lease in leases if lease.mac.upper() not in known_devices)
+    if unknown_count > 0:
+        warnings.append(
+            colorize(f"  Unknown devices on network: {unknown_count}", "red")
         )
 
     if warnings:
@@ -303,22 +457,22 @@ def cmd_reboot(client: RouterClient) -> int:
         return 1
 
 
-def cmd_clients(client: RouterClient) -> int:
+def cmd_clients(client: RouterClient, known_devices: dict[str, str]) -> int:
     """Execute clients command."""
     try:
         clients = client.get_wireless_clients()
-        print(format_clients(clients))
+        print(format_clients(clients, known_devices))
         return 0
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
 
-def cmd_dhcp(client: RouterClient) -> int:
+def cmd_dhcp(client: RouterClient, known_devices: dict[str, str]) -> int:
     """Execute dhcp command."""
     try:
         leases = client.get_dhcp_leases()
-        print(format_dhcp(leases))
+        print(format_dhcp(leases, known_devices))
         return 0
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -370,14 +524,14 @@ def cmd_logs(
         return 1
 
 
-def cmd_overview(client: RouterClient) -> int:
+def cmd_overview(client: RouterClient, known_devices: dict[str, str]) -> int:
     """Execute overview command."""
     try:
         status = client.get_status()
         clients = client.get_wireless_clients()
         leases = client.get_dhcp_leases()
         stats = client.get_statistics()
-        print(format_overview(status, clients, leases, stats))
+        print(format_overview(status, clients, leases, stats, known_devices))
         return 0
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -429,13 +583,16 @@ def main() -> int:
         password=config.get("password", ""),
     )
 
+    # Load known devices for colorization
+    known_devices = load_known_devices()
+
     # Execute command
     if args.command == "status":
         return cmd_status(client)
     elif args.command == "clients":
-        return cmd_clients(client)
+        return cmd_clients(client, known_devices)
     elif args.command == "dhcp":
-        return cmd_dhcp(client)
+        return cmd_dhcp(client, known_devices)
     elif args.command == "routes":
         return cmd_routes(client)
     elif args.command == "stats":
@@ -443,7 +600,7 @@ def main() -> int:
     elif args.command == "logs":
         return cmd_logs(client, tail=args.tail, level=args.level)
     elif args.command == "overview":
-        return cmd_overview(client)
+        return cmd_overview(client, known_devices)
     elif args.command == "reboot":
         return cmd_reboot(client)
 
