@@ -36,8 +36,12 @@ jobs:
       - name: Build package
         run: uv build
 
-      - name: Upload build artefacts
+      - name: Get short SHA
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: router-cli-${{ steps.sha.outputs.short }}
           path: dist/
