@@ -15,6 +15,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git-cliff
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -39,6 +41,13 @@ jobs:
       - name: Build package
         run: uv build
 
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        id: changelog
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -49,7 +58,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.content }}
 
   publish:
     needs: build
