@@ -195,38 +195,15 @@ MAC addresses are matched case-insensitively.
 
 ## Development
 
-### Setup
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the full development guide.
+
+### Quick Start
 
 ```bash
 git clone https://github.com/d3vr/router-cli
 cd router-cli
 uv sync --all-groups
-```
-
-### Running Tests
-
-```bash
 uv run pytest
-```
-
-Tests use HTML fixtures captured from a real router, ensuring the parsing logic correctly handles the router's specific (and sometimes malformed) HTML output.
-
-### Project Structure
-
-```
-router-cli/
-├── src/router_cli/
-│   ├── __init__.py
-│   ├── main.py          # CLI entry point and formatters
-│   ├── client.py        # RouterClient class and data models
-│   └── config.py        # Configuration loading
-├── tests/
-│   ├── fixtures/        # HTML fixtures from real router
-│   ├── test_client.py   # Client parsing tests
-│   ├── test_main.py     # CLI formatting tests
-│   └── test_config.py   # Config loading tests
-├── config.example.toml  # Example configuration
-└── pyproject.toml
 ```
 
 ## Compatibility
