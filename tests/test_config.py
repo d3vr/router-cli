@@ -56,26 +56,71 @@ password = "testpass"
         assert config["password"] == "testpass"
 
     def test_load_config_missing_raises(self, tmp_path: Path, monkeypatch):
-        """Test that missing config raises FileNotFoundError."""
+        """Test that missing config without password raises FileNotFoundError."""
         monkeypatch.chdir(tmp_path)
         # Ensure no config exists in any search path
         monkeypatch.setattr(
             "router_cli.config.get_config_paths",
             lambda: [tmp_path / "nonexistent.toml"],
         )
+        # Also ensure no environment variables are set
+        monkeypatch.delenv("ROUTER_PASS", raising=False)
 
-        with pytest.raises(FileNotFoundError, match="No config.toml found"):
+        with pytest.raises(FileNotFoundError, match="No password configured"):
             load_config()
 
     def test_load_config_empty_router_section(self, tmp_path: Path, monkeypatch):
-        """Test loading config with empty router section."""
+        """Test loading config with empty router section uses defaults."""
         config_file = tmp_path / "config.toml"
-        config_file.write_text("[other]\nkey = 'value'\n")
+        config_file.write_text("[router]\npassword = 'test'\n")
         monkeypatch.chdir(tmp_path)
 
         config = load_config()
 
-        assert config == {}
+        # Should have defaults plus the password from file
+        assert config["ip"] == "192.168.1.1"
+        assert config["username"] == "admin"
+        assert config["password"] == "test"
+
+    def test_load_config_env_vars_override(self, tmp_path: Path, monkeypatch):
+        """Test environment variables override config file."""
+        config_file = tmp_path / "config.toml"
+        config_file.write_text("""
+[router]
+ip = "10.0.0.1"
+username = "fileuser"
+password = "filepass"
+""")
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("ROUTER_IP", "172.16.0.1")
+        monkeypatch.setenv("ROUTER_USER", "envuser")
+        monkeypatch.setenv("ROUTER_PASS", "envpass")
+
+        config = load_config()
+
+        assert config["ip"] == "172.16.0.1"
+        assert config["username"] == "envuser"
+        assert config["password"] == "envpass"
+
+    def test_load_config_cli_overrides_all(self, tmp_path: Path, monkeypatch):
+        """Test CLI arguments override both env vars and config file."""
+        config_file = tmp_path / "config.toml"
+        config_file.write_text("""
+[router]
+ip = "10.0.0.1"
+username = "fileuser"
+password = "filepass"
+""")
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("ROUTER_IP", "172.16.0.1")
+
+        config = load_config(
+            cli_ip="192.168.100.1", cli_user="cliuser", cli_pass="clipass"
+        )
+
+        assert config["ip"] == "192.168.100.1"
+        assert config["username"] == "cliuser"
+        assert config["password"] == "clipass"
 
 
 class TestKnownDevices:

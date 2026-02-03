@@ -2,8 +2,8 @@
 
 import pytest
 
-from router_cli.client import RouterStatus
-from router_cli.main import format_status
+from router_cli.models import RouterStatus, WANConnection
+from router_cli.formatters import format_status
 
 
 class TestFormatStatus:
@@ -20,12 +20,12 @@ class TestFormatStatus:
             preferred_dns="8.8.8.8",
             alternate_dns="8.8.4.4",
             wan_connections=[
-                {
-                    "interface": "ADSL",
-                    "description": "pppoe_0_0_38",
-                    "status": "Connected",
-                    "ipv4": "1.2.3.4",
-                }
+                WANConnection(
+                    interface="ADSL",
+                    description="pppoe_0_0_38",
+                    status="Connected",
+                    ipv4="1.2.3.4",
+                )
             ],
             ssid="MyNetwork",
             wireless_mac="AA:BB:CC:DD:EE:FF",
