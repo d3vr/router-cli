@@ -1,0 +1,375 @@
+<html>
+   <head>
+      <link rel="stylesheet" href='stylemain.css' type='text/css'>
+            <meta http-equiv="Pragma" content="no-cache">
+            <meta http-equiv="refresh" content="60">
+            <title></title>
+            <base target="_self">
+
+<script language="javascript">
+<!-- hide
+var sessionKey='123456789';
+var infoitems ='\|,|pppoe_0_0_38}-{Link Up}-{0';
+var infotable = new infonode();
+infotable.loadValues (infoitems);
+
+
+/*ip in structure*/
+function infonode()
+{
+    var arrinf = new Array();
+    var arrstatus = new Array();
+    var arrprot = new Array();
+    
+    
+    this.waninf = arrinf;
+    this.wanstatus = arrstatus;
+    this.protocol = arrprot;
+
+    this.loadValues = function(strVal)
+    {
+        if (strVal != '')
+        {
+            var nodes = strVal.split('|,|');
+            for ( i = 0; i < nodes.length; i++ )
+            {
+                var data = nodes[i].split('}-{');
+                (data[0]) ? arrinf[i] = data[0] : arrinf[i] = '';
+                (data[1]) ? arrstatus[i] = data[1] : arrstatus[i] = '';
+                (data[2]) ? arrprot[i] = data[2] : arrprot[i] = '';
+            }
+            this.length = nodes.length;
+        }
+        else
+            this.length = 0;
+    }
+}
+
+function writewanchannel()
+{
+    //var statusindex ='';
+    var statusindex ='0';
+    if(statusindex==0 && infotable.length >0)
+    {
+        statusindex=1;
+    }
+    for( var i = 1; i < infotable.length; i++ )
+    {
+        if (statusindex == i)
+        {
+            document.writeln("<option value=" + i + " selected>" + infotable.waninf[i] + "</option>");
+        }
+        else
+        {
+            document.writeln("<option value=" + i + ">" + infotable.waninf[i] + "</option>");
+        }
+    }
+    with ( document.forms[0] )
+    {
+        if (infotable.length < 1)
+        {
+            wanchannel.disabled = true;
+        }
+    }
+}
+
+function writewanstatus()
+{
+    with ( document.forms[0] )
+    {
+        //var i=getSelectIndex(wanchannel.value);
+        //var i='';
+        var i='0';
+    }
+    if (infotable.length > 0)
+    {
+        if(i==0)
+        {
+            i=1;
+        }
+        document.writeln("<td><label id=infstatus" + i + ">" + infotable.wanstatus[i] + "</label></td>");
+    }
+    else
+        document.writeln("<td><label id=infstatus" + i + ">N/A</label></td>");
+}
+
+function appSelect(cb)
+{
+    var loc = 'info.cgi?';
+
+    with ( document.forms[0] )
+    {
+        loc += 'selectid=' + wanchannel[wanchannel.selectedIndex].value;
+    }
+    loc += '&sessionKey=' + sessionKey;
+    var code = 'location="' + loc + '"';
+    eval(code);
+}
+
+function wifiSelect(cb)
+{
+    var loc = 'info.cgi?';
+
+    with ( document.forms[0] )
+    {
+        loc += 'wlidx=' + wlSsidIdx[wlSsidIdx.selectedIndex].value;
+    }
+    loc += '&sessionKey=' + sessionKey;
+    var code = 'location="' + loc + '"';
+    eval(code);
+}
+
+function frmLoad()
+{
+    with ( document.forms[0] )
+    {
+        if (infotable.protocol[wanchannel.selectedIndex + 1] == 3)
+        {
+            gatewayInfo.style.display = 'none';
+        }
+    }
+}
+
+// done hiding -->
+</script>
+<script language="JavaScript" src="menu.html"></script>
+   </head>
+<body onLoad='frmLoad()'>
+<blockquote>
+
+<script language="JavaScript">
+TabHeader="Status";
+SideItem="Device Info";
+HelpItem="deviceinfo";
+</script>
+<script type='text/javascript'>
+        mainTableStart();
+        logo();
+        TopNav();
+        ThirdRowStart();
+        Write_Item_Images();
+        mainBodyStart();
+</script>
+<form>
+        <table id=box_header border=0 cellSpacing=0>
+                <tr>
+                        <td class=topheader>
+                                Device Info
+                        </td>
+                </tr>
+                <tr>
+                        <td class=content>
+                                <p>
+                                This information reflects the current status of your DSL connection.</p>
+                        </td>
+                </tr>
+        </table>
+        <table id=body_header border=0 cellSpacing=0>
+                <tr>
+                        <td class=topheader>
+                                System Info
+                        </td>
+                </tr>
+                <tr>
+                        <td class=content>
+
+               <table class=formlisting>
+<script language="javascript">
+<!-- hide
+var modeName = 'DSL-2750U';
+if (modeName != '') {
+  document.writeln("               <tr>");
+  document.writeln("                  <td class='form_label_col'>Model Name:</td>");
+  document.writeln("                  <td style='width: 50%' >" + modeName + "&nbsp;</td>");
+  document.writeln("               </tr>");
+}
+// done hiding -->
+</script>
+
+<script language="javascript">
+<!-- hide
+var buildSntp = '1';
+
+if ( buildSntp == '1') {
+  document.writeln("               <tr>");
+  document.writeln("                  <td class='form_label_col'>Time and Date:</td>");
+  document.writeln("                  <td>Tue Feb  3 08:41:03 2026</td>");
+  document.writeln("               </tr>");
+}
+// done hiding -->
+</script>
+               <tr>
+                  <td class='form_label_col'>Firmware Version:</td>
+                  <td>ME_1.00</td>
+               </tr>
+        </table>
+                        </td>
+                </tr>
+        </table>
+        <table id=body_header border=0 cellSpacing=0>
+                <tr>
+                        <td class=topheader>Internet Info</td>
+                </tr>
+                <tr>
+                        <td class=content>
+<!--            
+<table border="0" cellpadding="0" cellspacing="0" width=100% class=formarea>
+<tr>
+ <td ><label for=status style="FONT-WEIGHT: bold">Internet Connection:&nbsp</label>
+<SELECT id='wanchannel' name='wanchannel' onChange='appSelect(this.value)'>
+<script language="javascript">
+//writewanchannel();
+</script>
+</select>
+</td>
+ </tr>
+ </table>
+ -->
+               <table class=formlisting>
+
+               <tbody id=gatewayInfo>
+                                <tr>
+                  <td class='form_label_col'>Default Gateway:</td>
+<script language="javascript">
+<!-- hide
+var dfltGw = '203.0.113.1';
+var dfltGwIfc = 'ppp0.1';
+if ( dfltGw != '&nbsp' )
+  document.writeln("                  <td>" + dfltGw + "</td>");
+else
+  document.writeln("                  <td>" + dfltGwIfc + "</td>");
+// done hiding -->
+</script>
+               </tr>
+               <tr>
+                  <td class='form_label_col'>Preferred DNS Server:</td>
+                  <td>1.1.1.1</td>
+               </tr>
+               <tr>
+                  <td class='form_label_col'>Alternate DNS Server:</td>
+                  <td>1.0.0.1</td>
+               </tr>
+               </tbody>
+                        </table>
+<br>
+<div  class="overflow"><table class=formlisting>
+    <tr>      <td class='form_label_col' colspan=7>Enabled WAN Connections:</td>    </tr>    <tr class=form_label_row>      <td class='form_label_col'>Interface</td>      <td class='form_label_col'>Description</td>      <td class='form_label_col'>Connection Status</td>      <td class='form_label_col'>IPv4 Address</td>      <td class='form_label_col'>IPv6 Address</td>    </tr>    <tr align='center'>      <td class='hd'>ADSL</td>      <td class='hd'>pppoe_0_0_38</td>      <td class='hd'>Connected</td>      <td class='hd'>203.0.113.100</td>      <td class='hd'>&nbsp</td>    </tr>
+</table>
+<br><br></div>
+                        </td>
+                </tr>
+        </table>
+
+<script language="javascript">
+<!-- hide
+if (wireless==1)
+  document.writeln("<div>");
+else
+  document.writeln("<div style='display:none'>");
+// done hiding -->
+</script>
+        <table id=body_header border=0 cellSpacing=0>
+                <tr>
+                        <td class=topheader>Wireless Info:</td>
+                </tr>
+                <tr>
+                        <td class=content>
+                            <table border="0" cellpadding="0" cellspacing="0" width=100% class=formarea>
+                            <tr>
+                             <td ><label for=status style="FONT-WEIGHT: bold">Wireless Network Name (SSID):&nbsp</label>
+                                <SELECT id='wlSsidIdx' name='wlSsidIdx' onChange='wifiSelect(this.value)'>
+                                <option value='0' selected>MyNetwork</option>
+<option value='1'>MyNetwork</option>
+<option value='2'>D-Link GUEST2</option>
+<option value='3'>D-Link GUEST3</option>
+</select>
+                            </td>
+                             </tr>
+                        </table>
+                        <table class=formlisting>
+                            <tr><td class=form_label_col>MAC Address:</td>
+<td>AA:BB:CC:DD:EE:01</td></tr>
+<tr><td class=form_label_col>Status:</td>
+<td>Enabled</td></tr>
+<tr><td class=form_label_col>Visibility:</td>
+<td>Visibility</td></tr>
+<tr><td class=form_label_col>Security Mode:</td>
+<td>WPA</td></tr>
+
+                        </table>
+                        </td>
+                </tr>
+        </table>
+</div>
+        <table id=body_header border=0 cellSpacing=0>
+                <tr>
+                        <td class=topheader>Local Network Info</td>
+                </tr>
+                <tr>
+                        <td class=content>
+            <table class=formlisting>
+              <TR>
+                <TD class=form_label_col>MAC Address:</TD>
+                <TD>aa:bb:cc:dd:ee:00</SPAN>
+              </TD></TR>
+               <tr>
+                  <td class='form_label_col'>IP Address:</td>
+                  <td style='width: 50%' >192.168.1.1</td>
+               </tr>
+               <tr>
+                  <td class='form_label_col'>Subnet Mask:</td>
+                  <td>255.255.255.0</td>
+               </tr>
+<script language="javascript">
+<!-- hide
+var dhcpEnbl = '1';
+if ( dhcpEnbl == '1' ){
+  document.writeln("<tr><td class='form_label_col'>DHCP Server:</td>");
+  document.writeln("<td>Enabled</td></tr>");
+} else {
+  document.writeln("<tr><td class='form_label_col'>DHCP Server:</td>");
+  document.writeln("<td>Disabled</td></tr>");
+}
+// done hiding -->
+</script>
+
+            </table>
+                        </td>
+                </tr>
+        </table>
+        
+        <br>
+        <table id=body_header border=0 cellSpacing=0>
+            <tr>
+              <td class=topheader>
+                <b>Storage Device Information</b>
+              </td>
+            </tr>
+            <tr>
+              <td class=content>
+                <table border='1' cellpadding='4' cellspacing='0' lign="center" class=formlisting>
+                  <tr align='center'>
+                    <td class='hd'>Volumename</td>
+                    <td class='hd'>FileSystem</td>
+                    <td class='hd'>Total Space</td>
+                    <td class='hd'>Used Space</td>
+                  </tr>          
+                  
+                </table><br>
+              </td>
+            </tr>
+        </table>
+        
+
+         </form>
+<script type='text/javascript'>
+        mainBodyEnd();
+        delaytimer=250;
+        ThirdRowEnd();
+        Footer()
+        mainTableEnd()
+</script>
+</blockquote>
+</body>
+</html>
+
