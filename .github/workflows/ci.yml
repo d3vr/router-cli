@@ -9,9 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -21,14 +18,26 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
+      - name: Set up Python
+        run: uv python install 3.10
 
       - name: Install dependencies
         run: uv sync --all-groups
+
+      - name: Ruff check
+        run: uvx ruff check
+
+      - name: Ruff format check
+        run: uvx ruff format --check
 
       - name: Run tests
         run: uv run pytest
 
       - name: Build package
         run: uv build
+
+      - name: Upload build artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
