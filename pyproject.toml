@@ -3,21 +3,15 @@ name = "router-cli"
 version = "0.1.0"
 description = "CLI tool to manage D-Link DSL-2750U router"
 readme = "README.md"
-authors = [
-    { name = "d3vr", email = "hi@f3.al" }
-]
-requires-python = ">=3.11"
-dependencies = [
-    "tomli>=2.0.0; python_version < '3.11'",
-]
+authors = [{ name = "d3vr", email = "hi@f3.al" }]
+requires-python = ">=3.10"
+dependencies = ["tomli>=2.0.0; python_version < '3.11'"]
 
 [project.scripts]
 router = "router_cli.main:main"
 
 [dependency-groups]
-dev = [
-    "pytest>=8.0.0",
-]
+dev = ["pytest>=8.0.0"]
 
 [build-system]
 requires = ["uv_build>=0.9.28,<0.10.0"]
