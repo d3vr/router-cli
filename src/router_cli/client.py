@@ -1,11 +1,38 @@
 """HTTP client for D-Link DSL-2750U router."""
 
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from http.cookiejar import CookieJar
+
+
+class RouterError(Exception):
+    """Base exception for router errors."""
+
+    pass
+
+
+class AuthenticationError(RouterError):
+    """Raised when authentication fails or session expires."""
+
+    pass
+
+
+class ConnectionError(RouterError):
+    """Raised when unable to connect to the router."""
+
+    pass
+
+
+class HTTPError(RouterError):
+    """Raised for HTTP error responses."""
+
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 @dataclass
@@ -139,6 +166,48 @@ class RouterClient:
         )
         self._authenticated = False
 
+    # Patterns that indicate a login/session expired page
+    _LOGIN_PAGE_PATTERNS = [
+        re.compile(r"<title>\s*Login\s*</title>", re.IGNORECASE),
+        re.compile(r'name=["\']?password["\']?.*type=["\']?password', re.IGNORECASE),
+        re.compile(r"session\s*(has\s*)?expired", re.IGNORECASE),
+        re.compile(r"please\s*log\s*in", re.IGNORECASE),
+        re.compile(r"unauthorized", re.IGNORECASE),
+    ]
+
+    # Patterns that indicate an error page
+    _ERROR_PAGE_PATTERNS = [
+        re.compile(r"<title>\s*Error\s*</title>", re.IGNORECASE),
+        re.compile(r"internal\s*server\s*error", re.IGNORECASE),
+        re.compile(r"service\s*unavailable", re.IGNORECASE),
+        re.compile(r"<h1>\s*\d{3}\s*</h1>", re.IGNORECASE),  # <h1>500</h1> etc.
+    ]
+
+    def _is_login_page(self, html: str) -> bool:
+        """Check if the HTML response is a login/session expired page."""
+        for pattern in self._LOGIN_PAGE_PATTERNS:
+            if pattern.search(html):
+                return True
+        return False
+
+    def _is_error_page(self, html: str) -> tuple[bool, str | None]:
+        """Check if the HTML response is an error page.
+
+        Returns (is_error, error_message).
+        """
+        for pattern in self._ERROR_PAGE_PATTERNS:
+            if pattern.search(html):
+                # Try to extract a meaningful error message
+                title_match = re.search(r"<title>([^<]+)</title>", html, re.IGNORECASE)
+                h1_match = re.search(r"<h1>([^<]+)</h1>", html, re.IGNORECASE)
+                msg = (
+                    title_match.group(1)
+                    if title_match
+                    else (h1_match.group(1) if h1_match else "Unknown error")
+                )
+                return True, msg.strip()
+        return False, None
+
     def authenticate(self) -> bool:
         """Authenticate with the router.
 
@@ -165,28 +234,134 @@ class RouterClient:
 
         try:
             with self.opener.open(request, timeout=10) as response:
+                html = response.read().decode("utf-8", errors="replace")
+                # Check if we got redirected to login page (auth failed)
+                if self._is_login_page(html):
+                    self._authenticated = False
+                    raise AuthenticationError(
+                        "Authentication failed: invalid credentials"
+                    )
                 self._authenticated = response.status == 200
                 return self._authenticated
+        except urllib.error.HTTPError as e:
+            raise AuthenticationError(f"Authentication failed: HTTP {e.code}")
         except urllib.error.URLError as e:
-            raise ConnectionError(f"Failed to connect to router at {self.ip}: {e}")
+            raise ConnectionError(
+                f"Failed to connect to router at {self.ip}: {e.reason}"
+            )
 
-    def fetch_page(self, path: str) -> str:
-        """Fetch a page from the router with authentication cookies."""
+    def fetch_page(self, path: str, max_retries: int = 3) -> str:
+        """Fetch a page from the router with authentication cookies.
+
+        Args:
+            path: The page path to fetch (e.g., "/info.html")
+            max_retries: Maximum number of retry attempts for transient failures
+
+        Returns:
+            The HTML content of the page
+
+        Raises:
+            AuthenticationError: If session expired and re-auth fails
+            ConnectionError: If unable to connect to the router
+            HTTPError: If the router returns an HTTP error
+        """
         if not self._authenticated:
             self.authenticate()
 
         url = f"{self.base_url}/{path.lstrip('/')}"
         cookie_header = f"username={self.username}; password={self.password}"
 
-        request = urllib.request.Request(
-            url, headers={"Cookie": cookie_header}, method="GET"
-        )
+        last_error: Exception | None = None
 
-        try:
-            with self.opener.open(request, timeout=10) as response:
-                return response.read().decode("utf-8", errors="replace")
-        except urllib.error.URLError as e:
-            raise ConnectionError(f"Failed to fetch {path}: {e}")
+        for attempt in range(max_retries):
+            request = urllib.request.Request(
+                url, headers={"Cookie": cookie_header}, method="GET"
+            )
+
+            try:
+                with self.opener.open(request, timeout=10) as response:
+                    html = response.read().decode("utf-8", errors="replace")
+
+                    # Check if we got a login page (session expired)
+                    if self._is_login_page(html):
+                        self._authenticated = False
+                        # Try to re-authenticate once
+                        if attempt == 0:
+                            try:
+                                self.authenticate()
+                                continue  # Retry the request
+                            except AuthenticationError:
+                                raise AuthenticationError(
+                                    "Session expired and re-authentication failed"
+                                )
+                        raise AuthenticationError("Session expired")
+
+                    # Check if we got an error page
+                    is_error, error_msg = self._is_error_page(html)
+                    if is_error:
+                        # Some error pages are transient, retry
+                        if attempt < max_retries - 1:
+                            time.sleep(1 * (attempt + 1))  # Backoff
+                            continue
+                        raise HTTPError(f"Router returned error page: {error_msg}")
+
+                    return html
+
+            except urllib.error.HTTPError as e:
+                last_error = e
+                # Read the error body for better diagnostics
+                try:
+                    error_body = e.read().decode("utf-8", errors="replace")[:200]
+                except Exception:
+                    error_body = ""
+
+                # Retry on 5xx errors (server-side issues)
+                if 500 <= e.code < 600 and attempt < max_retries - 1:
+                    time.sleep(1 * (attempt + 1))  # Exponential backoff
+                    continue
+
+                # Provide helpful error message based on status code
+                if e.code == 401:
+                    self._authenticated = False
+                    raise AuthenticationError("Authentication required (401)")
+                elif e.code == 403:
+                    raise AuthenticationError("Access forbidden (403)")
+                elif e.code == 404:
+                    raise HTTPError(f"Page not found: {path}", status_code=404)
+                elif e.code == 503:
+                    raise HTTPError(
+                        "Router is busy or unavailable (503). Try again later.",
+                        status_code=503,
+                    )
+                else:
+                    # Include snippet of error body for debugging
+                    snippet = error_body[:100].replace("\n", " ").strip()
+                    raise HTTPError(
+                        f"HTTP {e.code} fetching {path}: {snippet or e.reason}",
+                        status_code=e.code,
+                    )
+
+            except urllib.error.URLError as e:
+                last_error = e
+                # Retry on network errors
+                if attempt < max_retries - 1:
+                    time.sleep(1 * (attempt + 1))
+                    continue
+                raise ConnectionError(f"Failed to connect to {self.ip}: {e.reason}")
+
+            except TimeoutError:
+                last_error = TimeoutError(f"Request to {path} timed out")
+                if attempt < max_retries - 1:
+                    time.sleep(1 * (attempt + 1))
+                    continue
+                raise ConnectionError(
+                    f"Request to {path} timed out after {max_retries} attempts"
+                )
+
+        # Should not reach here, but just in case
+        raise ConnectionError(
+            f"Failed to fetch {path} after {max_retries} attempts: {last_error}"
+        )
 
     def get_session_key(self, html: str) -> str:
         """Extract session key from HTML page."""

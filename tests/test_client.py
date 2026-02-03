@@ -568,7 +568,7 @@ class TestDHCPLeasesDetails:
         assert len(leases) == 7
 
         # Check each lease has unique IP
-        ips = [l.ip for l in leases]
+        ips = [lease.ip for lease in leases]
         assert len(set(ips)) == 7
 
         # Check IP range

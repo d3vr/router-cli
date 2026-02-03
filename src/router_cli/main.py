@@ -9,11 +9,15 @@ from contextlib import contextmanager
 
 from .client import (
     ADSLStats,
+    AuthenticationError,
+    ConnectionError,
     DHCPLease,
+    HTTPError,
     InterfaceStats,
     LogEntry,
     Route,
     RouterClient,
+    RouterError,
     RouterStatus,
     Statistics,
     WirelessClient,
@@ -28,6 +32,41 @@ _COLORS = {
     "yellow": "\033[33m",
     "reset": "\033[0m",
 }
+
+
+def _handle_error(e: Exception) -> int:
+    """Handle exceptions and print user-friendly error messages.
+
+    Returns the exit code to use.
+    """
+    if isinstance(e, AuthenticationError):
+        print(f"Authentication error: {e}", file=sys.stderr)
+        print(
+            "  Hint: Check your username/password in the config file.", file=sys.stderr
+        )
+        return 2
+    elif isinstance(e, ConnectionError):
+        print(f"Connection error: {e}", file=sys.stderr)
+        print(
+            "  Hint: Ensure the router is reachable and the IP is correct.",
+            file=sys.stderr,
+        )
+        return 3
+    elif isinstance(e, HTTPError):
+        print(f"Router error: {e}", file=sys.stderr)
+        if e.status_code == 503:
+            print(
+                "  Hint: The router may be busy. Wait a moment and try again.",
+                file=sys.stderr,
+            )
+        return 4
+    elif isinstance(e, RouterError):
+        print(f"Router error: {e}", file=sys.stderr)
+        return 1
+    else:
+        # Catch-all for unexpected errors - include type for debugging
+        print(f"Unexpected error ({type(e).__name__}): {e}", file=sys.stderr)
+        return 1
 
 
 def colorize(text: str, color: str) -> str:
@@ -496,8 +535,7 @@ def cmd_status(client: RouterClient) -> int:
         print(format_status(status))
         return 0
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        return _handle_error(e)
 
 
 def cmd_reboot(client: RouterClient) -> int:
@@ -509,8 +547,7 @@ def cmd_reboot(client: RouterClient) -> int:
         print("The router will restart in a few seconds.")
         return 0
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        return _handle_error(e)
 
 
 def cmd_clients(client: RouterClient, known_devices: dict[str, str]) -> int:
@@ -521,8 +558,7 @@ def cmd_clients(client: RouterClient, known_devices: dict[str, str]) -> int:
         print(format_clients(clients, known_devices))
         return 0
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        return _handle_error(e)
 
 
 def cmd_dhcp(client: RouterClient, known_devices: dict[str, str]) -> int:
@@ -533,8 +569,7 @@ def cmd_dhcp(client: RouterClient, known_devices: dict[str, str]) -> int:
         print(format_dhcp(leases, known_devices))
         return 0
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        return _handle_error(e)
 
 
 def cmd_routes(client: RouterClient) -> int:
@@ -545,8 +580,7 @@ def cmd_routes(client: RouterClient) -> int:
         print(format_routes(routes))
         return 0
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        return _handle_error(e)
 
 
 def cmd_stats(client: RouterClient) -> int:
@@ -557,8 +591,7 @@ def cmd_stats(client: RouterClient) -> int:
         print(format_stats(stats))
         return 0
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        return _handle_error(e)
 
 
 def cmd_logs(
@@ -581,8 +614,7 @@ def cmd_logs(
         print(format_logs(logs))
         return 0
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        return _handle_error(e)
 
 
 def cmd_overview(client: RouterClient, known_devices: dict[str, str]) -> int:
@@ -596,8 +628,7 @@ def cmd_overview(client: RouterClient, known_devices: dict[str, str]) -> int:
         print(format_overview(status, clients, leases, stats, known_devices))
         return 0
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        return _handle_error(e)
 
 
 def main() -> int:
