@@ -1,5 +1,6 @@
 """Configuration loading for router CLI."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -7,6 +8,11 @@ if sys.version_info >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
+
+
+# Default configuration values
+DEFAULT_IP = "192.168.1.1"
+DEFAULT_USERNAME = "admin"
 
 
 def get_config_paths() -> list[Path]:
@@ -27,29 +33,77 @@ def _load_config_file() -> dict | None:
     return None
 
 
-def load_config() -> dict:
-    """Load configuration from TOML file.
+def load_config(
+    cli_ip: str | None = None,
+    cli_user: str | None = None,
+    cli_pass: str | None = None,
+) -> dict:
+    """Load configuration with priority: CLI args > env vars > config file > defaults.
 
-    Searches for config in:
-    1. ./config.toml (current directory)
-    2. ~/.config/router/config.toml
-    3. /etc/router/config.toml
+    Args:
+        cli_ip: IP address from CLI argument (highest priority)
+        cli_user: Username from CLI argument
+        cli_pass: Password from CLI argument
+
+    Environment variables:
+        ROUTER_IP: Router IP address
+        ROUTER_USER: Username for authentication
+        ROUTER_PASS: Password for authentication
+
+    Config file locations (in order of priority):
+        1. ./config.toml (current directory)
+        2. ~/.config/router/config.toml
+        3. /etc/router/config.toml
     """
-    config = _load_config_file()
-    if config is not None:
-        return config.get("router", {})
+    # Start with defaults
+    config: dict[str, str] = {
+        "ip": DEFAULT_IP,
+        "username": DEFAULT_USERNAME,
+        "password": "",
+    }
 
-    raise FileNotFoundError(
-        "No config.toml found. Create one at ~/.config/router/config.toml with:\n"
-        "[router]\n"
-        'ip = "192.168.1.1"\n'
-        'username = "admin"\n'
-        'password = "your_password"\n'
-        "\n"
-        "[known_devices]\n"
-        '"AA:BB:CC:DD:EE:FF" = "My Phone"      # by MAC address\n'
-        '"android-abc123" = "Pixel Phone"     # by hostname (for random MACs)'
-    )
+    # Layer 1: Config file (lowest priority for file-based config)
+    file_config = _load_config_file()
+    if file_config is not None:
+        router_config = file_config.get("router", {})
+        config.update(router_config)
+
+    # Layer 2: Environment variables
+    if os.environ.get("ROUTER_IP"):
+        config["ip"] = os.environ["ROUTER_IP"]
+    if os.environ.get("ROUTER_USER"):
+        config["username"] = os.environ["ROUTER_USER"]
+    if os.environ.get("ROUTER_PASS"):
+        config["password"] = os.environ["ROUTER_PASS"]
+
+    # Layer 3: CLI arguments (highest priority)
+    if cli_ip:
+        config["ip"] = cli_ip
+    if cli_user:
+        config["username"] = cli_user
+    if cli_pass:
+        config["password"] = cli_pass
+
+    # Require password from some source
+    if not config.get("password"):
+        # Check if we have a config file - if not, show helpful error
+        if file_config is None and not os.environ.get("ROUTER_PASS"):
+            raise FileNotFoundError(
+                "No password configured. Either:\n"
+                "  1. Create ~/.config/router/config.toml with:\n"
+                "     [router]\n"
+                '     ip = "192.168.1.1"\n'
+                '     username = "admin"\n'
+                '     password = "your_password"\n'
+                "\n"
+                "  2. Set environment variables:\n"
+                "     export ROUTER_PASS=your_password\n"
+                "\n"
+                "  3. Use CLI flags:\n"
+                "     router --pass your_password status"
+            )
+
+    return config
 
 
 def _is_mac_address(identifier: str) -> bool:
