@@ -1,6 +1,6 @@
 [project]
 name = "router-cli"
-version = "0.1.0"
+version = "0.2.0"
 description = "CLI tool to manage D-Link DSL-2750U router"
 readme = "README.md"
 authors = [{ name = "d3vr", email = "hi@f3.al" }]
