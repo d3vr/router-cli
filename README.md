@@ -48,10 +48,12 @@ username = "admin"
 password = "your_password_here"
 
 # Optional: Define known devices for colorized output
+# Use MAC addresses for devices with stable MACs
+# Use hostnames for devices with random MACs (like Android)
 [known_devices]
 "AA:BB:CC:DD:EE:FF" = "My Phone"
 "11:22:33:44:55:66" = "Smart TV"
-"DE:AD:BE:EF:00:01" = "Work Laptop"
+"android-abc123" = "John's Pixel"
 ```
 
 The tool searches for configuration in the following locations (in order):
@@ -179,7 +181,7 @@ Sends a reboot command to the router.
 
 ## Known Devices
 
-The `[known_devices]` section in your config file maps MAC addresses to friendly names. This enables:
+The `[known_devices]` section in your config file maps MAC addresses or hostnames to friendly names. This enables:
 
 - **Color-coded output**: Known devices appear in green, unknown in red
 - **Friendly names**: See "My Phone" instead of a hostname or MAC address
@@ -187,11 +189,18 @@ The `[known_devices]` section in your config file maps MAC addresses to friendly
 
 ```toml
 [known_devices]
+# By MAC address (for devices with stable MACs)
 "AA:BB:CC:DD:EE:FF" = "My Phone"
 "11:22:33:44:55:66" = "Smart TV"
+
+# By hostname (for devices with random MACs, like some Android phones)
+"android-abc123def" = "John's Pixel"
+"Galaxy-S24" = "Sarah's Phone"
 ```
 
-MAC addresses are matched case-insensitively.
+**MAC addresses** are identified by their format (`XX:XX:XX:XX:XX:XX`) and matched case-insensitively.
+
+**Hostnames** are useful for Android and iOS devices that use MAC address randomization for privacy. These devices typically maintain a consistent hostname even when their MAC changes. Hostnames are also matched case-insensitively.
 
 ## Development
 

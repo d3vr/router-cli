@@ -22,7 +22,7 @@ from .client import (
     Statistics,
     WirelessClient,
 )
-from .config import load_config, load_known_devices
+from .config import KnownDevices, load_config, load_known_devices
 
 
 # ANSI color codes
@@ -130,14 +130,20 @@ def spinner(message: str = "Loading..."):
 
 
 def get_device_display(
-    mac: str, hostname: str, known_devices: dict[str, str]
+    mac: str, hostname: str, known_devices: KnownDevices | None
 ) -> tuple[str, bool]:
     """Get display name for a device and whether it's known.
 
     Returns (display_name, is_known) tuple.
     If known, display_name is 'Alias (hostname)'.
+
+    Supports lookup by both MAC address and hostname (for devices with
+    random MAC addresses like some Android phones).
     """
-    alias = known_devices.get(mac.upper())
+    if known_devices is None:
+        return hostname or mac, False
+
+    alias = known_devices.get_alias(mac, hostname)
     if alias:
         if hostname and hostname != alias:
             return f"{alias} ({hostname})", True
@@ -220,21 +226,22 @@ def format_status(status: RouterStatus) -> str:
 
 
 def format_clients(
-    clients: list[WirelessClient], known_devices: dict[str, str] | None = None
+    clients: list[WirelessClient], known_devices: KnownDevices | None = None
 ) -> str:
     """Format wireless clients for display."""
     if not clients:
         return "No wireless clients connected."
 
-    known_devices = known_devices or {}
+    known_devices = known_devices or KnownDevices()
 
     # Build display data and calculate column widths
     rows = []
     for c in clients:
         assoc = "Yes" if c.associated else "No"
         auth = "Yes" if c.authorized else "No"
-        is_known = c.mac.upper() in known_devices
-        alias = known_devices.get(c.mac.upper(), "")
+        # WirelessClient doesn't have hostname, so we can only check by MAC
+        alias = known_devices.get_alias(c.mac, "")
+        is_known = alias is not None
         mac_display = f"{c.mac} ({alias})" if alias else c.mac
         rows.append((mac_display, assoc, auth, c.ssid, c.interface, is_known))
 
@@ -268,13 +275,13 @@ def format_clients(
 
 
 def format_dhcp(
-    leases: list[DHCPLease], known_devices: dict[str, str] | None = None
+    leases: list[DHCPLease], known_devices: KnownDevices | None = None
 ) -> str:
     """Format DHCP leases for display."""
     if not leases:
         return "No DHCP leases."
 
-    known_devices = known_devices or {}
+    known_devices = known_devices or KnownDevices()
 
     # Build display data and calculate column widths
     rows = []
@@ -421,10 +428,10 @@ def format_overview(
     clients: list[WirelessClient],
     leases: list[DHCPLease],
     stats: Statistics,
-    known_devices: dict[str, str] | None = None,
+    known_devices: KnownDevices | None = None,
 ) -> str:
     """Format overview dashboard with highlights from multiple sources."""
-    known_devices = known_devices or {}
+    known_devices = known_devices or KnownDevices()
     lines = [
         "=" * 60,
         f"{'ROUTER OVERVIEW':^60}",
@@ -512,7 +519,9 @@ def format_overview(
             f"  Low SNR margin: {stats.adsl.downstream_snr_margin:.1f} dB (may cause disconnects)"
         )
     # Warn about unknown devices
-    unknown_count = sum(1 for lease in leases if lease.mac.upper() not in known_devices)
+    unknown_count = sum(
+        1 for lease in leases if not known_devices.is_known(lease.mac, lease.hostname)
+    )
     if unknown_count > 0:
         warnings.append(
             colorize(f"  Unknown devices on network: {unknown_count}", "red")

@@ -7,8 +7,12 @@ username = "admin"
 password = "your_password_here"
 
 # Known devices for colorized output (green = known, red = unknown)
-# Map MAC addresses to friendly names
+# Identify devices by MAC address or hostname
 [known_devices]
+# By MAC address (for devices with stable MACs)
 "AA:BB:CC:DD:EE:FF" = "My Phone"
 "11:22:33:44:55:66" = "Smart TV"
-"DE:AD:BE:EF:00:01" = "Work Laptop"
+
+# By hostname (for devices with random MACs, like Android/iOS)
+"android-abc123def" = "John's Pixel"
+"Galaxy-S24" = "Sarah's Phone"

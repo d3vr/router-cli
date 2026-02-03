@@ -3,7 +3,12 @@
 import pytest
 from pathlib import Path
 
-from router_cli.config import load_config, get_config_paths
+from router_cli.config import (
+    load_config,
+    get_config_paths,
+    load_known_devices,
+    KnownDevices,
+)
 
 
 class TestConfigPaths:
@@ -71,3 +76,133 @@ password = "testpass"
         config = load_config()
 
         assert config == {}
+
+
+class TestKnownDevices:
+    """Tests for KnownDevices class."""
+
+    def test_empty_known_devices(self):
+        """Test empty KnownDevices returns None for lookups."""
+        known = KnownDevices()
+        assert known.get_alias("AA:BB:CC:DD:EE:FF") is None
+        assert known.get_alias("AA:BB:CC:DD:EE:FF", "some-host") is None
+        assert not known.is_known("AA:BB:CC:DD:EE:FF")
+
+    def test_mac_lookup(self):
+        """Test MAC address lookup."""
+        known = KnownDevices(by_mac={"AA:BB:CC:DD:EE:FF": "My Phone"})
+        assert known.get_alias("AA:BB:CC:DD:EE:FF") == "My Phone"
+        assert known.is_known("AA:BB:CC:DD:EE:FF")
+
+    def test_mac_lookup_case_insensitive(self):
+        """Test MAC address lookup is case-insensitive."""
+        known = KnownDevices(by_mac={"AA:BB:CC:DD:EE:FF": "My Phone"})
+        assert known.get_alias("aa:bb:cc:dd:ee:ff") == "My Phone"
+        assert known.get_alias("Aa:Bb:Cc:Dd:Ee:Ff") == "My Phone"
+
+    def test_hostname_lookup(self):
+        """Test hostname lookup."""
+        known = KnownDevices(by_hostname={"android-abc123": "John's Pixel"})
+        assert known.get_alias("XX:XX:XX:XX:XX:XX", "android-abc123") == "John's Pixel"
+        assert known.is_known("XX:XX:XX:XX:XX:XX", "android-abc123")
+
+    def test_hostname_lookup_case_insensitive(self):
+        """Test hostname lookup is case-insensitive."""
+        known = KnownDevices(by_hostname={"android-abc123": "John's Pixel"})
+        assert known.get_alias("XX:XX:XX:XX:XX:XX", "Android-ABC123") == "John's Pixel"
+        assert known.get_alias("XX:XX:XX:XX:XX:XX", "ANDROID-ABC123") == "John's Pixel"
+
+    def test_mac_takes_priority_over_hostname(self):
+        """Test MAC lookup takes priority over hostname."""
+        known = KnownDevices(
+            by_mac={"AA:BB:CC:DD:EE:FF": "MAC Device"},
+            by_hostname={"some-host": "Hostname Device"},
+        )
+        # Even when hostname matches, MAC should win
+        assert known.get_alias("AA:BB:CC:DD:EE:FF", "some-host") == "MAC Device"
+
+    def test_hostname_fallback_when_mac_not_found(self):
+        """Test hostname is used when MAC is not in known devices."""
+        known = KnownDevices(
+            by_mac={"11:22:33:44:55:66": "Other Device"},
+            by_hostname={"android-phone": "Android"},
+        )
+        # MAC not in list, but hostname is
+        assert known.get_alias("AA:BB:CC:DD:EE:FF", "android-phone") == "Android"
+
+    def test_backward_compatible_get(self):
+        """Test dict-like get() for backward compatibility."""
+        known = KnownDevices(by_mac={"AA:BB:CC:DD:EE:FF": "My Phone"})
+        assert known.get("AA:BB:CC:DD:EE:FF") == "My Phone"
+        assert known.get("XX:XX:XX:XX:XX:XX") is None
+        assert known.get("XX:XX:XX:XX:XX:XX", "default") == "default"
+
+    def test_backward_compatible_contains(self):
+        """Test dict-like __contains__ for backward compatibility."""
+        known = KnownDevices(by_mac={"AA:BB:CC:DD:EE:FF": "My Phone"})
+        assert "AA:BB:CC:DD:EE:FF" in known
+        assert "XX:XX:XX:XX:XX:XX" not in known
+
+
+class TestLoadKnownDevices:
+    """Tests for load_known_devices function."""
+
+    def test_load_mac_addresses(self, tmp_path: Path, monkeypatch):
+        """Test loading MAC addresses from config."""
+        config_file = tmp_path / "config.toml"
+        config_file.write_text("""
+[known_devices]
+"AA:BB:CC:DD:EE:FF" = "My Phone"
+"11:22:33:44:55:66" = "Smart TV"
+""")
+        monkeypatch.chdir(tmp_path)
+
+        known = load_known_devices()
+
+        assert known.get_alias("AA:BB:CC:DD:EE:FF") == "My Phone"
+        assert known.get_alias("11:22:33:44:55:66") == "Smart TV"
+
+    def test_load_hostnames(self, tmp_path: Path, monkeypatch):
+        """Test loading hostnames from config."""
+        config_file = tmp_path / "config.toml"
+        config_file.write_text("""
+[known_devices]
+"android-abc123" = "John's Pixel"
+"Galaxy-S24" = "Sarah's Phone"
+""")
+        monkeypatch.chdir(tmp_path)
+
+        known = load_known_devices()
+
+        assert known.get_alias("XX:XX:XX:XX:XX:XX", "android-abc123") == "John's Pixel"
+        assert known.get_alias("YY:YY:YY:YY:YY:YY", "Galaxy-S24") == "Sarah's Phone"
+
+    def test_load_mixed_mac_and_hostname(self, tmp_path: Path, monkeypatch):
+        """Test loading both MAC addresses and hostnames."""
+        config_file = tmp_path / "config.toml"
+        config_file.write_text("""
+[known_devices]
+"AA:BB:CC:DD:EE:FF" = "My Phone"
+"android-abc123" = "John's Pixel"
+""")
+        monkeypatch.chdir(tmp_path)
+
+        known = load_known_devices()
+
+        # MAC lookup
+        assert known.get_alias("AA:BB:CC:DD:EE:FF") == "My Phone"
+        # Hostname lookup
+        assert known.get_alias("XX:XX:XX:XX:XX:XX", "android-abc123") == "John's Pixel"
+        # Unknown device
+        assert known.get_alias("XX:XX:XX:XX:XX:XX", "unknown-host") is None
+
+    def test_load_empty_returns_empty_known_devices(self, tmp_path: Path, monkeypatch):
+        """Test loading empty config returns empty KnownDevices."""
+        config_file = tmp_path / "config.toml"
+        config_file.write_text("[router]\nip = '192.168.1.1'\n")
+        monkeypatch.chdir(tmp_path)
+
+        known = load_known_devices()
+
+        assert not known.is_known("AA:BB:CC:DD:EE:FF")
+        assert not known.is_known("XX:XX:XX:XX:XX:XX", "any-host")
