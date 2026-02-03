@@ -99,8 +99,15 @@ Releases are published to PyPI via `.github/workflows/release.yml` when tags are
 
 ## Architecture Overview
 
-- **`client.py`** - `RouterClient` handles HTTP requests and HTML parsing. Uses `urllib.request` with regex-based parsing (the router returns malformed HTML).
-- **`main.py`** - CLI entry point using `argparse`. Commands are `cmd_*` functions, formatters are `format_*` functions.
-- **`config.py`** - TOML configuration loading with support for known device MAC mappings.
+The codebase is organized into focused modules:
+
+- **`main.py`** - CLI entry point using `argparse`. Handles argument parsing and dispatches to commands.
+- **`client.py`** - `RouterClient` handles HTTP requests to the router using `urllib.request`.
+- **`parser.py`** - HTML parsing logic with regex-based extraction (the router returns malformed HTML).
+- **`models.py`** - Data classes for structured router data (status, clients, DHCP leases, etc.).
+- **`commands.py`** - Command implementations (`cmd_status`, `cmd_clients`, etc.).
+- **`display.py`** - Output display logic for terminal rendering.
+- **`formatters.py`** - Formatting functions for human-readable and JSON output.
+- **`config.py`** - TOML configuration loading with environment variable and CLI override support.
 
 See `AGENTS.md` for pitfalls and edge cases when working with the router's quirky web interface.

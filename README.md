@@ -15,7 +15,7 @@ Since the router doesn't provide a formal API, this tool works by authenticating
 
 ## Installation
 
-Requires Python 3.11 or higher.
+Requires Python 3.10 or higher.
 
 ### Using uv (recommended)
 
@@ -62,6 +62,24 @@ The tool searches for configuration in the following locations (in order):
 3. `/etc/router/config.toml`
 
 ## Usage
+
+### Global Options
+
+All commands support these global options:
+
+```bash
+router --ip 192.168.1.1 --user admin --pass secret status
+router --json clients
+```
+
+| Option | Environment Variable | Description |
+|--------|---------------------|-------------|
+| `--ip ADDRESS` | `ROUTER_IP` | Router IP address |
+| `--user USERNAME` | `ROUTER_USER` | Username for authentication |
+| `--pass PASSWORD` | `ROUTER_PASS` | Password for authentication |
+| `--json` | - | Output in JSON format (for scripting) |
+
+**Configuration priority**: CLI flags > environment variables > config file > defaults
 
 ### Quick Overview
 
@@ -217,7 +235,7 @@ uv run pytest
 
 ## Compatibility
 
-- **Python**: 3.11+
+- **Python**: 3.10+
 - **Router**: D-Link DSL-2750U (firmware ME_1.00)
 
 This tool may work with other D-Link routers that share a similar web interface, but has only been tested with the DSL-2750U.
