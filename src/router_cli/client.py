@@ -38,6 +38,93 @@ class RouterStatus:
     dhcp_server: str = ""
 
 
+@dataclass
+class WirelessClient:
+    """A connected wireless client."""
+
+    mac: str
+    associated: bool
+    authorized: bool
+    ssid: str
+    interface: str
+
+
+@dataclass
+class DHCPLease:
+    """A DHCP lease entry."""
+
+    hostname: str
+    mac: str
+    ip: str
+    expires_in: str
+
+
+@dataclass
+class Route:
+    """A routing table entry."""
+
+    destination: str
+    gateway: str
+    subnet_mask: str
+    flag: str
+    metric: int
+    service: str
+
+
+@dataclass
+class InterfaceStats:
+    """Statistics for a network interface."""
+
+    interface: str
+    rx_bytes: int
+    rx_packets: int
+    rx_errors: int
+    rx_drops: int
+    tx_bytes: int
+    tx_packets: int
+    tx_errors: int
+    tx_drops: int
+
+
+@dataclass
+class ADSLStats:
+    """ADSL line statistics."""
+
+    mode: str = ""
+    traffic_type: str = ""
+    status: str = ""
+    link_power_state: str = ""
+    downstream_rate: int = 0
+    upstream_rate: int = 0
+    downstream_snr_margin: float = 0.0
+    upstream_snr_margin: float = 0.0
+    downstream_attenuation: float = 0.0
+    upstream_attenuation: float = 0.0
+    downstream_output_power: float = 0.0
+    upstream_output_power: float = 0.0
+    downstream_attainable_rate: int = 0
+    upstream_attainable_rate: int = 0
+
+
+@dataclass
+class Statistics:
+    """Network and ADSL statistics."""
+
+    lan_interfaces: list[InterfaceStats] = field(default_factory=list)
+    wan_interfaces: list[InterfaceStats] = field(default_factory=list)
+    adsl: ADSLStats = field(default_factory=ADSLStats)
+
+
+@dataclass
+class LogEntry:
+    """A system log entry."""
+
+    datetime: str
+    facility: str
+    severity: str
+    message: str
+
+
 class RouterClient:
     """Client for communicating with D-Link DSL-2750U router."""
 
@@ -275,3 +362,347 @@ class RouterClient:
         except urllib.error.URLError:
             # Router may disconnect during reboot, this is expected
             return True
+
+    def get_wireless_clients(self) -> list[WirelessClient]:
+        """Fetch and parse wireless clients."""
+        html = self.fetch_page("/wlstationlist.cmd")
+        return self._parse_wireless_clients(html)
+
+    def _parse_wireless_clients(self, html: str) -> list[WirelessClient]:
+        """Parse wireless clients from HTML."""
+        clients = []
+
+        # Find all data rows in the table
+        rows = re.findall(
+            r"<tr>\s*<td><p align=center>\s*([A-Fa-f0-9:]+)\s*"
+            r".*?<p align=center>\s*(Yes|No)\s*</p>.*?"
+            r"<p align=center>\s*(Yes|No)\s*</p>.*?"
+            r"<p align=center>\s*([^<&]+?)(?:&nbsp)?\s*</td>.*?"
+            r"<p align=center>\s*([^<&]+?)(?:&nbsp)?\s*</td>",
+            html,
+            re.DOTALL | re.IGNORECASE,
+        )
+
+        for row in rows:
+            mac, associated, authorized, ssid, interface = row
+            clients.append(
+                WirelessClient(
+                    mac=mac.strip(),
+                    associated=associated.lower() == "yes",
+                    authorized=authorized.lower() == "yes",
+                    ssid=ssid.strip(),
+                    interface=interface.strip(),
+                )
+            )
+
+        return clients
+
+    def get_dhcp_leases(self) -> list[DHCPLease]:
+        """Fetch and parse DHCP leases."""
+        html = self.fetch_page("/dhcpinfo.html")
+        return self._parse_dhcp_leases(html)
+
+    def _parse_dhcp_leases(self, html: str) -> list[DHCPLease]:
+        """Parse DHCP leases from HTML."""
+        leases = []
+
+        # Find the DHCP table section
+        table_match = re.search(
+            r"<table class=formlisting>.*?</table>", html, re.DOTALL | re.IGNORECASE
+        )
+        if not table_match:
+            return leases
+
+        table = table_match.group(0)
+
+        # Find data rows (skip header row)
+        rows = re.findall(
+            r"<tr><td>([^<]*)</td><td>([^<]*)</td><td>([^<]*)</td><td>([^<]*)</td></tr>",
+            table,
+            re.IGNORECASE,
+        )
+
+        for row in rows:
+            hostname, mac, ip, expires = row
+            leases.append(
+                DHCPLease(
+                    hostname=hostname.strip(),
+                    mac=mac.strip(),
+                    ip=ip.strip(),
+                    expires_in=expires.strip(),
+                )
+            )
+
+        return leases
+
+    def get_routes(self) -> list[Route]:
+        """Fetch and parse routing table."""
+        html = self.fetch_page("/rtroutecfg.cmd?action=dlinkau")
+        return self._parse_routes(html)
+
+    def _parse_routes(self, html: str) -> list[Route]:
+        """Parse routing table from HTML."""
+        routes = []
+
+        # Find the routing table
+        table_match = re.search(
+            r"<table class=formlisting>.*?</table>", html, re.DOTALL | re.IGNORECASE
+        )
+        if not table_match:
+            return routes
+
+        table = table_match.group(0)
+
+        # Find data rows - 6 cells per row
+        rows = re.findall(
+            r"<tr>\s*"
+            r"<td>([^<]*)</td>\s*"
+            r"<td>([^<]*)</td>\s*"
+            r"<td>([^<]*)</td>\s*"
+            r"<td>([^<]*)</td>\s*"
+            r"<td>([^<]*)</td>\s*"
+            r"<td>([^<]*)</td>\s*"
+            r"</tr>",
+            table,
+            re.IGNORECASE,
+        )
+
+        for row in rows:
+            dest, gw, mask, flag, metric, service = row
+            # Skip header row
+            if "Destination" in dest:
+                continue
+            routes.append(
+                Route(
+                    destination=dest.strip(),
+                    gateway=gw.strip(),
+                    subnet_mask=mask.strip(),
+                    flag=flag.strip(),
+                    metric=int(metric.strip()) if metric.strip().isdigit() else 0,
+                    service=service.replace("&nbsp;", "").strip(),
+                )
+            )
+
+        return routes
+
+    def get_statistics(self) -> Statistics:
+        """Fetch and parse network statistics."""
+        html = self.fetch_page("/statsifcwanber.html")
+        return self._parse_statistics(html)
+
+    def _parse_statistics(self, html: str) -> Statistics:
+        """Parse statistics from HTML."""
+        stats = Statistics()
+
+        # Parse LAN interface stats - look for rows with 9 cells
+        lan_section = re.search(
+            r"Local Network.*?</table>", html, re.DOTALL | re.IGNORECASE
+        )
+        if lan_section:
+            stats.lan_interfaces = self._parse_interface_stats(lan_section.group(0))
+
+        # Parse WAN interface stats
+        wan_section = re.search(
+            r"<td class=topheader>\s*Internet\s*</td>.*?</table>",
+            html,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if wan_section:
+            stats.wan_interfaces = self._parse_wan_interface_stats(wan_section.group(0))
+
+        # Parse ADSL stats
+        stats.adsl = self._parse_adsl_stats(html)
+
+        return stats
+
+    def _parse_interface_stats(self, html: str) -> list[InterfaceStats]:
+        """Parse interface statistics table."""
+        interfaces = []
+
+        # Find rows with 9 numeric values
+        rows = re.findall(
+            r"<tr>\s*<td class='hd'>.*?</script>\s*</td>\s*"
+            r"<td>(\d+)</td>\s*<td>(\d+)</td>\s*<td>(\d+)</td>\s*<td>(\d+)</td>\s*"
+            r"<td>(\d+)</td>\s*<td>(\d+)</td>\s*<td>(\d+)</td>\s*<td>(\d+)</td>\s*</tr>",
+            html,
+            re.DOTALL | re.IGNORECASE,
+        )
+
+        # Extract interface names from script blocks
+        intf_names = re.findall(
+            r"brdIntf\s*=\s*['\"]([^'\"]+)['\"]", html, re.IGNORECASE
+        )
+
+        for i, row in enumerate(rows):
+            intf_name = (
+                intf_names[i].split("|")[-1] if i < len(intf_names) else f"eth{i}"
+            )
+            (
+                rx_bytes,
+                rx_pkts,
+                rx_errs,
+                rx_drops,
+                tx_bytes,
+                tx_pkts,
+                tx_errs,
+                tx_drops,
+            ) = row
+            interfaces.append(
+                InterfaceStats(
+                    interface=intf_name,
+                    rx_bytes=int(rx_bytes),
+                    rx_packets=int(rx_pkts),
+                    rx_errors=int(rx_errs),
+                    rx_drops=int(rx_drops),
+                    tx_bytes=int(tx_bytes),
+                    tx_packets=int(tx_pkts),
+                    tx_errors=int(tx_errs),
+                    tx_drops=int(tx_drops),
+                )
+            )
+
+        return interfaces
+
+    def _parse_wan_interface_stats(self, html: str) -> list[InterfaceStats]:
+        """Parse WAN interface statistics table."""
+        interfaces = []
+
+        # Find rows with interface name, description, and 8 numeric values
+        rows = re.findall(
+            r"<tr>\s*<td class='hd'>([^<]+)</td>\s*"
+            r"<td>([^<]+)</td>\s*"
+            r"<td>(\d+)</td>\s*<td>(\d+)</td>\s*<td>(\d+)</td>\s*<td>(\d+)</td>\s*"
+            r"<td>(\d+)</td>\s*<td>(\d+)</td>\s*<td>(\d+)</td>\s*<td>(\d+)</td>\s*</tr>",
+            html,
+            re.DOTALL | re.IGNORECASE,
+        )
+
+        for row in rows:
+            (
+                intf_name,
+                _desc,
+                rx_bytes,
+                rx_pkts,
+                rx_errs,
+                rx_drops,
+                tx_bytes,
+                tx_pkts,
+                tx_errs,
+                tx_drops,
+            ) = row
+            interfaces.append(
+                InterfaceStats(
+                    interface=intf_name.strip(),
+                    rx_bytes=int(rx_bytes),
+                    rx_packets=int(rx_pkts),
+                    rx_errors=int(rx_errs),
+                    rx_drops=int(rx_drops),
+                    tx_bytes=int(tx_bytes),
+                    tx_packets=int(tx_pkts),
+                    tx_errors=int(tx_errs),
+                    tx_drops=int(tx_drops),
+                )
+            )
+
+        return interfaces
+
+    def _parse_adsl_stats(self, html: str) -> ADSLStats:
+        """Parse ADSL statistics from HTML."""
+        adsl = ADSLStats()
+
+        adsl.mode = self._extract_value(html, r"Mode:</td><td>([^<]+)</td>")
+        adsl.traffic_type = self._extract_value(
+            html, r"Traffic Type:</td><td>([^<]+)</td>"
+        )
+        adsl.status = self._extract_value(html, r"Status:</td><td>([^<]+)</td>")
+        adsl.link_power_state = self._extract_value(
+            html, r"Link Power State:</td><td>([^<]+)</td>"
+        )
+
+        # Parse rate info - downstream and upstream
+        rate_match = re.search(
+            r"Rate \(Kbps\):</td><td>(\d+)</td><td>(\d+)</td>", html, re.IGNORECASE
+        )
+        if rate_match:
+            adsl.downstream_rate = int(rate_match.group(1))
+            adsl.upstream_rate = int(rate_match.group(2))
+
+        # Parse SNR margin
+        snr_match = re.search(
+            r"SNR Margin.*?<td>(\d+)</td><td>(\d+)</td>", html, re.IGNORECASE
+        )
+        if snr_match:
+            adsl.downstream_snr_margin = float(snr_match.group(1)) / 10
+            adsl.upstream_snr_margin = float(snr_match.group(2)) / 10
+
+        # Parse attenuation
+        atten_match = re.search(
+            r"Attenuation.*?<td>(\d+)</td><td>(\d+)</td>", html, re.IGNORECASE
+        )
+        if atten_match:
+            adsl.downstream_attenuation = float(atten_match.group(1)) / 10
+            adsl.upstream_attenuation = float(atten_match.group(2)) / 10
+
+        # Parse output power
+        power_match = re.search(
+            r"Output Power.*?<td>(\d+)</td><td>(\d+)</td>", html, re.IGNORECASE
+        )
+        if power_match:
+            adsl.downstream_output_power = float(power_match.group(1)) / 10
+            adsl.upstream_output_power = float(power_match.group(2)) / 10
+
+        # Parse attainable rate
+        attain_match = re.search(
+            r"Attainable Rate.*?<td>(\d+)</td><td>(\d+)</td>", html, re.IGNORECASE
+        )
+        if attain_match:
+            adsl.downstream_attainable_rate = int(attain_match.group(1))
+            adsl.upstream_attainable_rate = int(attain_match.group(2))
+
+        return adsl
+
+    def get_logs(self) -> list[LogEntry]:
+        """Fetch and parse system logs."""
+        html = self.fetch_page("/logview.cmd")
+        return self._parse_logs(html)
+
+    def _parse_logs(self, html: str) -> list[LogEntry]:
+        """Parse system logs from HTML."""
+        logs = []
+
+        # Find the log table
+        table_match = re.search(
+            r"<table class=formlisting>.*?</table>", html, re.DOTALL | re.IGNORECASE
+        )
+        if not table_match:
+            return logs
+
+        table = table_match.group(0)
+
+        # Find data rows - 4 cells per row
+        rows = re.findall(
+            r"<tr>\s*"
+            r"<td[^>]*>([^<]*)</td>\s*"
+            r"<td[^>]*>([^<]*)</td>\s*"
+            r"<td[^>]*>([^<]*)</td>\s*"
+            r"<td[^>]*>([^<]*)</td>\s*"
+            r"</tr>",
+            table,
+            re.IGNORECASE,
+        )
+
+        for row in rows:
+            datetime_str, facility, severity, message = row
+            # Skip header row
+            if "Date/Time" in datetime_str:
+                continue
+            logs.append(
+                LogEntry(
+                    datetime=datetime_str.strip(),
+                    facility=facility.strip(),
+                    severity=severity.strip(),
+                    message=message.strip(),
+                )
+            )
+
+        return logs

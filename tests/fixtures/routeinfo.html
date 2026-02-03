@@ -1,0 +1,98 @@
+<html><head>
+<link rel=stylesheet href='stylemain.css' type='text/css'>
+<meta HTTP-EQUIV='Expires' CONTENT='-1'>
+<script language='JavaScript' src='menu.html'></script>
+<script language='javascript' src='util.js'></script>
+<meta HTTP-EQUIV='Pragma' CONTENT='no-cache'>
+<title></title>
+</head>
+<body>
+<blockquote>
+<form>
+<script language='JavaScript'>
+TabHeader='Status';
+SideItem='Route Info';
+HelpItem='routinginfo';
+</script>
+<script type='text/javascript'>
+mainTableStart();
+logo();
+TopNav();
+ThirdRowStart();
+Write_Item_Images();
+mainBodyStart();
+</script>
+    <table id=box_header width='690' border=0 cellSpacing=0>
+			 <tr>
+				 <td class=topheader>
+					 Route Info
+				 </td>
+			 </tr>
+			<tr>
+				<td class=content><p>
+					The Routing Info page allows you to check the routing table of your router.<br>
+					Flags: U - up, ! - reject, G - gateway, H - host, R - reinstate<br>D - dynamic (redirect), M - modified (redirect).<br>
+				</p></td>
+			</tr>
+		</table>
+		<table id=body_header width='690' border=0 cellSpacing=0>
+			<tr>
+				<td class=topheader>Device Info -- Route</td>
+			</tr>
+		<tr>
+			<td class=content>
+				<div  class='overflow'><table class=formlisting>
+   <tr class=form_label_row>
+      <td class='form_label_col'>Destination</td>
+      <td class='form_label_col'>Gateway</td>
+      <td class='form_label_col'>Subnet Mask</td>
+      <td class='form_label_col'>Flag</td>
+      <td class='form_label_col'>Metric</td>
+      <td class='form_label_col'>Service</td>
+   </tr>
+   <tr>
+      <td>203.0.113.50</td>
+      <td>0.0.0.0</td>
+      <td>255.255.255.255</td>
+      <td>UH</td>
+      <td>0</td>
+      <td>pppoe_0_0_38</td>
+   </tr>
+   <tr>
+      <td>203.0.113.1</td>
+      <td>0.0.0.0</td>
+      <td>255.255.255.255</td>
+      <td>UH</td>
+      <td>0</td>
+      <td>pppoe_0_0_38</td>
+   </tr>
+   <tr>
+      <td>192.168.1.0</td>
+      <td>0.0.0.0</td>
+      <td>255.255.255.0</td>
+      <td>U</td>
+      <td>0</td>
+      <td>&nbsp;</td>
+   </tr>
+   <tr>
+      <td>0.0.0.0</td>
+      <td>0.0.0.0</td>
+      <td>0.0.0.0</td>
+      <td>U</td>
+      <td>0</td>
+      <td>pppoe_0_0_38</td>
+   </tr>
+</table><br><br></div></form>
+</td>
+</tr>
+</table>
+<script type='text/javascript'>
+mainBodyEnd();
+delaytimer=250;
+ThirdRowEnd();
+Footer();
+mainTableEnd();
+</script>
+</blockquote>
+</body>
+</html>

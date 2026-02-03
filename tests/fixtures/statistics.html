@@ -1,0 +1,222 @@
+<html>
+   <head>
+      <meta http-equiv='Pragma' content='no-cache'>
+      <meta http-equiv="refresh" content="60">
+      <link rel="stylesheet" href='stylemain.css' type='text/css'>
+          <script language="javascript" src="portName.js"></script>
+          <script language="javascript" src="util.js"></script>
+            <script language="javascript">
+<!-- hide
+var sessionKey='123456789';
+
+function frmLoad() {
+   var updateIfc = '';
+   var update = '';
+   var updateatm = '';
+   var errMsg = '&nbsp';
+
+   if ( errMsg != '&nbsp' )
+   {
+      var app;
+      var l = 'statsifcwanerr.html';
+      var app = 'location="' + l + '"';
+      eval(app);
+   }
+}
+
+function resetClick() {
+   var loc = 'statsifcwanreset.html';
+
+   var code = 'location="' + loc + '"';
+   eval(code);
+}
+
+function btnBerTest() {
+    var options;
+    options = 'menubar=no,resizable=no,scrollbars=yes,titlebar=yes,toolbar=no,width=400,height=300';
+    window.open('berstart.tst?berState=0', 'BCM963xxBerTest', options);
+}
+
+// done hiding -->
+</script>
+<script language="JavaScript" src="menu.html"></script>
+   </head>
+<body onLoad='frmLoad()'>
+<blockquote>
+<script language="JavaScript">
+TabHeader="Status";
+SideItem="Statistics";
+HelpItem="statistic";
+</script>
+<script type='text/javascript'>
+        mainTableStart();
+        logo();
+        TopNav();
+        ThirdRowStart();
+        Write_Item_Images();
+        mainBodyStart();
+</script>
+        <table id=box_header border=0 cellSpacing=0>
+                <tr>
+                        <td class=topheader>
+                                Statistics
+                        </td>
+                </tr>
+                <tr>
+                        <td class=content>
+                                <p>
+                                This information reflects the current status of your DSL connection.</p>
+                        </td>
+                </tr>
+        </table>
+        <table id=body_header border=0 cellSpacing=0>
+                <tr>
+                        <td class=topheader>
+                                Local Network & Wireless
+                        </td>
+                </tr>
+                <tr>
+                        <td class=content>
+         <form>
+            <br>
+<div class="overflow">
+            <table class=formlisting>
+               <tr class=form_label_row>
+                  <td class='form_label_col'>Interface</td>
+                  <td class='form_label_col' colspan="4"><center>Received</center>
+                  </td>
+                  <td class='form_label_col' colspan="4"><center>Transmitted</center>
+                  </td>
+               </tr>
+               <tr>
+                  <td class='form_label_col'>&nbsp</td>
+                  <td class='form_label_col'>Bytes</td>
+                  <td class='form_label_col'>Pkts</td>
+                  <td class='form_label_col'>Errs</td>
+                  <td class='form_label_col'>Drops</td>
+                  <td class='form_label_col'>Bytes</td>
+                  <td class='form_label_col'>Pkts</td>
+                  <td class='form_label_col'>Errs</td>
+                  <td class='form_label_col'>Drops</td>
+               </tr>
+                <tr>
+                              <tr>                  <td class='hd'>                      <script language='javascript'>
+                      <!-- hide
+                         var brdIntf = '96318REF|eth0';
+                         var intfDisp = getUNameByLName(brdIntf);
+                         document.write(intfDisp);
+                      // done hiding -->
+                     </script>
+                 </td>                  <td>75423250</td>                  <td>462175</td>                  <td>0</td>                  <td>0</td>                  <td>770009076</td>                  <td>694880</td>                  <td>0</td>                  <td>0</td>               </tr>               <tr>                  <td class='hd'>                      <script language='javascript'>
+                      <!-- hide
+                         var brdIntf = '96318REF|eth1';
+                         var intfDisp = getUNameByLName(brdIntf);
+                         document.write(intfDisp);
+                      // done hiding -->
+                     </script>
+                 </td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>               </tr>               <tr>                  <td class='hd'>                      <script language='javascript'>
+                      <!-- hide
+                         var brdIntf = '96318REF|eth2';
+                         var intfDisp = getUNameByLName(brdIntf);
+                         document.write(intfDisp);
+                      // done hiding -->
+                     </script>
+                 </td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>               </tr>               <tr>                  <td class='hd'>                      <script language='javascript'>
+                      <!-- hide
+                         var brdIntf = '96318REF|eth3';
+                         var intfDisp = getUNameByLName(brdIntf);
+                         document.write(intfDisp);
+                      // done hiding -->
+                     </script>
+                 </td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>               </tr>               <tr>                  <td class='hd'>                      <script language='javascript'>
+                      <!-- hide
+                         brdIntf = '96318REF|wl0';
+                         intfDisp = getUNameByLName(brdIntf);
+                         document.write(intfDisp);
+                      // done hiding -->
+                     </script>
+                 </td>                  <td>20189548</td>                  <td>60115</td>                  <td>0</td>                  <td>0</td>                  <td>417006008</td>                  <td>362610</td>                  <td>0</td>                  <td>0</td>               </tr>
+            </table>
+        <br>
+            <br>
+            </div>
+
+                </td>
+                </tr>
+        </table>
+        <br>
+        <table id=body_header border=0 cellSpacing=0>
+                <tr>
+                        <td class=topheader>
+                                Internet
+                        </td>
+                </tr>
+                <tr>
+                        <td class=content>
+            <br>
+
+                        <div class="overflow">
+                        <table class=formlisting>
+                        <tr class=form_label_row>
+                                <!-- <td class='form_label_col'>Service</td>
+                                <td class='form_label_col'>VPI/VCI</td>
+                                <td class='form_label_col'>Protocol</td>-->
+                                <td class='form_label_col'>Interface</td>
+                                <td class='form_label_col'>Description</td>
+                                <td class='form_label_col' colspan='4'>Received</td>
+                                <td class='form_label_col' colspan='4'>Transmitted</td>
+                        </tr>
+                        <tr align='center'>
+                           <td class='form_label_col'>&nbsp;</td>
+                           <td class='form_label_col'>&nbsp;</td>
+                           <!--<td class='form_label_col'>&nbsp;</td>-->
+                           <td class='form_label_col'>Bytes</td>
+                           <td class='form_label_col'>Pkts</td>
+                           <td class='form_label_col'>Errs</td>
+                           <td class='form_label_col'>Drops</td>
+                           <td class='form_label_col'>Bytes</td>
+                           <td class='form_label_col'>Pkts</td>
+                           <td class='form_label_col'>Errs</td>
+                           <td class='form_label_col'>Drops</td>
+                        </tr>
+                                       <tr>                  <td class='hd'>ppp0.1</td>                  <td>pppoe_0_0_38</td>                  <td>1159357175</td>                  <td>1028287</td>                  <td>0</td>                  <td>0</td>                  <td>84061012</td>                  <td>497566</td>                  <td>0</td>                  <td>0</td>               </tr>               <tr>                  <td class='hd'>eth4</td>                  <td>3G dongle</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>               </tr>               <tr>                  <td class='hd'>ppp7</td>                  <td>3G dongle</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>                  <td>0</td>               </tr>
+                        </table>
+                        <br><br>
+                        </div>
+                        </td>
+                </tr>
+        </table>
+        <BR>
+        <table id=body_header border=0 cellSpacing=0>
+                <tr>
+                        <td class=topheader>
+                                ADSL
+                        </td>
+                </tr>
+                <tr>
+                        <td class=content>
+
+         <form>
+            <br>
+            <table class=formlisting>
+                <tr>
+                  <td>               <tr><td colspan="2" class='hd'>Mode:</td><td>ADSL_2plus</td></tr><tr><td colspan="2" class='hd'>Traffic Type:</td><td>ATM</td></tr><tr><td colspan="2" class='hd'>Status:</td><td>Up</td></tr><tr><td colspan="2" class='hd'>Link Power State:</td><td>L0</td></tr><tr><td colspan="3">&nbsp;</td></tr><tr><td class='hd'>&nbsp;</td><td class='hd'>Downstream</td><td class='hd'>Upstream</td></tr><tr><td class='hd'><nobreak>Line Coding(Trellis):</nobreak></td><td>On</td><td>On</td></tr><tr><td class='hd'>SNR Margin (0.1 dB):</td><td>44</td><td>68</td></tr><tr><td class='hd'>Attenuation (0.1 dB):</td><td>140</td><td>224</td></tr><tr><td class='hd'>Output Power (0.1 dBm):</td><td>194</td><td>125</td></tr><tr><td class='hd'><nobreak>Attainable Rate (Kbps):</nobreak></td><td>19412</td><td>925</td></tr><tr><td colspan="5">&nbsp;</td></tr>
+<tr><td class='hd'>&nbsp;</td><td class='hd'>Path 0</td><td class='hd'>&nbsp;</td><td class='hd'>Path 1</td><td class='hd'>&nbsp;</td></tr><tr><td class='hd'>&nbsp;</td><td class='hd'>Downstream</td><td class='hd'>Upstream</td><td class='hd'>Downstream</td><td class='hd'>Upstream</td></tr><tr><td class='hd'>Rate (Kbps):</td><td>18525</td><td>738</td><td>0</td><td>0</td></tr><tr><td colspan="5">&nbsp;</td></tr>
+<tr><td class='hd'><nobreak>MSGc (# of bytes in overhead channel message):</nobreak></td><td>55</td><td>15</td><td>0</td><td>0</td></tr><tr><td class='hd'><nobreak>B (# of bytes in Mux Data Frame):</nobreak></td><td>121</td><td>69</td><td>0</td><td>0</td></tr><tr><td class='hd'><nobreak>M (# of Mux Data Frames in FEC Data Frame):</nobreak></td><td>2</td><td>2</td><td>0</td><td>0</td></tr><tr><td class='hd'><nobreak>T (Mux Data Frames over sync bytes):</nobreak></td><td>5</td><td>1</td><td>0</td><td>0</td></tr><tr><td class='hd'><nobreak>R (# of check bytes in FEC Data Frame):</nobreak></td><td>10</td><td>8</td><td>0</td><td>0</td></tr><tr><td class='hd'><nobreak>S (ratio of FEC over PMD Data Frame length):</nobreak></td><td>0.4207</td><td>5.9797</td><td>0.0</td><td>0.0</td></tr><tr><td class='hd'><nobreak>L (# of bits in PMD Data Frame):</nobreak></td><td>4829</td><td>198</td><td>0</td><td>0</td></tr><tr><td class='hd'><nobreak>D (interleaver depth):</nobreak></td><td>64</td><td>4</td><td>0</td><td>0</td></tr><tr><td class='hd'><nobreak>Delay (msec):</nobreak></td><td>7</td><td>6</td><td>0.0</td><td>0.0</td></tr><tr><td class='hd'><nobreak>INP (DMT symbol):</nobreak></td><td>0.50</td><td>0.50</td><td>0.0</td><td>0.0</td></tr><tr><td colspan="5">&nbsp;</td></tr><tr><td class='hd'>Super Frames:</td><td>346366</td><td>351907</td><td>0</td><td>0</td></tr><tr><td class='hd'>Super Frame Errors:</td><td>15</td><td>0</td><td>0</td><td>0</td></tr><tr><td class='hd'>RS Words:</td><td>52820652</td><td>3714957</td><td>0</td><td>0</td></tr><tr><td class='hd'>RS Correctable Errors:</td><td>101918</td><td>27</td><td>0</td><td>0</td></tr><tr><td class='hd'>RS Uncorrectable Errors:</td><td>385</td><td>0</td><td>0</td><td>0</td></tr><tr><td colspan="5">&nbsp;</td></tr><tr><td class='hd'>HEC Errors:</td><td>177</td><td>0</td><td>0</td><td>0</td></tr><tr><td class='hd'>OCD Errors:</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td class='hd'>LCD Errors:</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td class='hd'>Total Cells:</td><td>242782308</td><td>9672214</td><td>0</td><td>0</td></tr><tr><td class='hd'>Data Cells:</td><td>25371352</td><td>2275215</td><td>0</td><td>0</td></tr><tr><td class='hd'>Bit Errors:</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td colspan="5">&nbsp;</td></tr><tr><td class='hd'>Total ES:</td><td>7</td><td>0</td></tr><tr><td class='hd'>Total SES:</td><td>0</td><td>0</td></tr><tr><td class='hd'>Total UAS:</td><td>21</td><td>21</td></tr>&nbsp;</td>
+               </tr>
+            </table>
+                </td>
+                </tr>
+        </table>
+<p align=center><input type='button' onClick='btnBerTest()' value='ADSL BER Test'><input type='button' onClick='resetClick()' value='Reset Statistics'></p>
+
+</form>
+<script type='text/javascript'>
+        mainBodyEnd();
+        ThirdRowEnd();
+        Footer();
+        mainTableEnd();
+</script>
+</blockquote>
+   </body>
+</html>

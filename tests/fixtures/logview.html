@@ -1,0 +1,63 @@
+<html><head>
+<link rel=stylesheet href='stylemain.css' type='text/css'>
+<meta HTTP-EQUIV='Pragma' CONTENT='no-cache'>
+<meta HTTP-EQUIV='Expires' CONTENT='-1'>
+<title></title>
+<script language='JavaScript' src='menu.html'></script>
+</head>
+<body>
+<blockquote>
+<script language='JavaScript'>
+TabHeader='Status';
+SideItem='Logs';
+HelpItem='log';
+</script>
+<script type='text/javascript'>
+mainTableStart();
+logo();
+TopNav();
+ThirdRowStart();
+Write_Item_Images();
+mainBodyStart();
+</script>
+<table id=box_header width='690' border=0 cellSpacing=0>
+<tr>
+<td class=topheader>Logs</td>
+</tr>
+<tr>
+<td class=content><p>This page allows you to view system logs.</p>
+</p></td>
+</tr>
+</table>
+<table id=body_header width='690' border=0 cellSpacing=0>
+<tr>
+<td class=topheader>System Log </td>
+</tr>
+<tr>
+<td class=content>
+<form>
+<br>
+   <div class=overflow><table class=formlisting>
+   <tr class=form_label_row>
+      <td class='form_label_col'>Date/Time</td>
+      <td class='form_label_col'>Facility</td>
+      <td class='form_label_col'>Severity</td>
+      <td class='form_label_col'>Message</td>
+   </tr>
+   </table>
+<br><br></div>
+</td>
+</tr>
+</table>
+<p align=center><input type='button' onClick='location.href="logview.cmd"' value='Refresh'>
+</form>
+<script type='text/javascript'>
+mainBodyEnd();
+delaytimer=250;
+ThirdRowEnd();
+Footer();
+mainTableEnd();
+</script>
+</blockquote>
+</body>
+</html>
